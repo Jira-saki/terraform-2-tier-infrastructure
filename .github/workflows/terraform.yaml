@@ -1,0 +1,50 @@
+ืname: "Terraform Infrastructure Deployment"  
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    name: "Terraform"
+    runs-on: ubuntu-latest
+    
+    # ดึง Secret มาเป็น Environment Variable เพื่อให้ Terraform อ่านค่าได้
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: "ap-northeast-3"
+      TF_VAR_db_password: ${{ secrets.2_tier_secret }} 
+
+    steps:
+      # 1. Checkout โค้ดจาก Repository
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # 2. ติดตั้ง Terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      # 3. เริ่มต้น (Init) - โหลด Plugin AWS
+      - name: Terraform Init
+        run: terraform init
+
+      # 4. ตรวจสอบรูปแบบโค้ด (Format Check)
+      - name: Terraform Format
+        run: terraform fmt -check
+
+      # 5. วางแผน (Plan) - ถ้ามี Error จะหยุดตรงนี้
+      - name: Terraform Plan
+        run: terraform plan -input=false
+
+      # 6. สร้างจริง (Apply) - ทำเฉพาะเมื่ออยู่บน branch main และเป็นการ push
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: terraform apply -auto-approve -input=false

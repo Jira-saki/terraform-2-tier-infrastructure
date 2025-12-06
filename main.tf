@@ -67,13 +67,13 @@ resource "aws_security_group" "web_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-  
+
   # Allow SSH for debugging (Optional, good for testing)
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"] 
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
@@ -90,8 +90,8 @@ resource "aws_security_group" "db_sg" {
   vpc_id      = aws_vpc.main.id
 
   ingress {
-    from_port       = 3306
-    to_port         = 3306
+    from_port       = 5432
+    to_port         = 5432
     protocol        = "tcp"
     security_groups = [aws_security_group.web_sg.id] # Least Privilege!
   }
@@ -110,9 +110,9 @@ data "aws_ami" "ubuntu" {
 
 # 5. EC2 Instance (Web Server)
 resource "aws_instance" "web" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t2.micro" # Free tier eligible
-  subnet_id     = aws_subnet.public.id
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "t2.micro" # Free tier eligible
+  subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
 
   user_data = <<-EOF
@@ -141,12 +141,12 @@ resource "aws_db_subnet_group" "main" {
 resource "aws_db_instance" "default" {
   allocated_storage      = 10
   db_name                = "mydb"
-  engine                 = "mysql"
-  engine_version         = "8.0"
+  engine                 = "postgres"
+  engine_version         = "16.11"
   instance_class         = "db.t3.micro"
-  username               = "admin"
+  username               = "dbadmin"
   password               = var.db_password
-  parameter_group_name   = "default.mysql8.0"
+  parameter_group_name   = "default.postgres16"
   skip_final_snapshot    = true
   vpc_security_group_ids = [aws_security_group.db_sg.id]
   db_subnet_group_name   = aws_db_subnet_group.main.name
