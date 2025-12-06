@@ -114,6 +114,8 @@ resource "aws_instance" "web" {
   instance_type          = "t2.micro" # Free tier eligible
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.web_sg.id]
+  # --- เพิ่มSSM IAMRole ---
+  iam_instance_profile = aws_iam_instance_profile.ssm_profile.name
 
   user_data = <<-EOF
               #!/bin/bash
@@ -150,4 +152,36 @@ resource "aws_db_instance" "default" {
   skip_final_snapshot    = true
   vpc_security_group_ids = [aws_security_group.db_sg.id]
   db_subnet_group_name   = aws_db_subnet_group.main.name
+}
+
+# --- เพิ่มส่วนนี้ต่อท้ายไฟล์ main.tf ---
+
+# 1. สร้าง Role (บัตรพนักงาน)
+resource "aws_iam_role" "ssm_role" {
+  name = "${var.project_name}-ssm-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+# 2. ให้สิทธิ์มาตรฐาน (SSM Managed Policy)
+resource "aws_iam_role_policy_attachment" "ssm_attach" {
+  role       = aws_iam_role.ssm_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+# 3. สร้าง Instance Profile (ซองใส่บัตร สำหรับเอาไปแปะบน EC2)
+resource "aws_iam_instance_profile" "ssm_profile" {
+  name = "${var.project_name}-ssm-profile"
+  role = aws_iam_role.ssm_role.name
 }
