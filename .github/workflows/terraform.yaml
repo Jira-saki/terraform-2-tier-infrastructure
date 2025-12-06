@@ -1,4 +1,4 @@
-ืname: "Terraform Infrastructure Deployment"  
+name: "Terraform Infrastructure Deployment"
 
 on:
   push:
@@ -14,12 +14,13 @@ jobs:
     name: "Terraform"
     runs-on: ubuntu-latest
     
-    # ดึง Secret มาเป็น Environment Variable เพื่อให้ Terraform อ่านค่าได้
+    # ดึง Secret มาเป็น Environment Variable
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: "ap-northeast-3"
-      TF_VAR_db_password: ${{ secrets.2_tier_secret }} 
+      # แก้ไขจุดที่ 2: ใช้ ['...'] แทนจุด เพื่อรองรับชื่อที่ขึ้นต้นด้วยตัวเลข
+      TF_VAR_db_password: ${{ secrets['2_tier_secret'] }}
 
     steps:
       # 1. Checkout โค้ดจาก Repository
@@ -32,19 +33,29 @@ jobs:
         with:
           terraform_version: 1.5.0
 
-      # 3. เริ่มต้น (Init) - โหลด Plugin AWS
+      # 3. เริ่มต้น (Init)
       - name: Terraform Init
         run: terraform init
 
-      # 4. ตรวจสอบรูปแบบโค้ด (Format Check)
+      # 4. ตรวจสอบ Syntax (Validate)
+      - name: Terraform Validate
+        run: terraform validate
+
+      # 5. ตรวจสอบรูปแบบโค้ด (Format Check)
       - name: Terraform Format
         run: terraform fmt -check
 
-      # 5. วางแผน (Plan) - ถ้ามี Error จะหยุดตรงนี้
+      # 6. Security Scan
+      - name: Security Scan
+        run: |
+          docker run --rm -v $(pwd):/src aquasec/tfsec /src
+
+      # 7. วางแผน (Plan)
       - name: Terraform Plan
         run: terraform plan -input=false
 
-      # 6. สร้างจริง (Apply) - ทำเฉพาะเมื่ออยู่บน branch main และเป็นการ push
+      # 8. สร้างจริง (Apply)
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: terraform apply -auto-approve -input=false
+
