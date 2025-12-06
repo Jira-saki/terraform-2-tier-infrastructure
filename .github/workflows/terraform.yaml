@@ -20,7 +20,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: "ap-northeast-3"
       # แก้ไขจุดที่ 2: ใช้ ['...'] แทนจุด เพื่อรองรับชื่อที่ขึ้นต้นด้วยตัวเลข
-      TF_VAR_db_password: ${{ secrets['2_tier_secret'] }}
+      TF_VAR_db_password: ${{ secrets['s_tier_secret'] }}
 
     steps:
       # 1. Checkout โค้ดจาก Repository
