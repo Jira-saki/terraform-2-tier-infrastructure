@@ -47,7 +47,7 @@ jobs:
 
       # 6. Security Scan
       - name: Security Scan
-        แcontinues-on-error: true
+        continues-on-error: true
         run: |
           docker run --rm -v $(pwd):/src aquasec/tfsec /src
 
